@@ -22,14 +22,22 @@ namespace SimpleWinFormsApp
             {
                 Bitmap inputImage = new Bitmap(bmpOne);
                 var inputFeatureVector = GetFeatureVector(inputImage);
-                var inputNormalizedFeatureVector = NormalizeFeatureVector(inputFeatureVector);
+                //var inputNormalizedFeatureVector = NormalizeFeatureVector(inputFeatureVector);
+                var inputNormalizedFeatureVector = ZScoreNormalizeFeatureVector(inputFeatureVector);
 
                 txtBlackPixelCount.Text = "";
                 txtBlackPixelCount.AppendText($"   Result   {Environment.NewLine}");
                 string folderPath = @"D:\code\.NET\AI\MyLab2\photo"; // Змініть на шлях до вашої папки з зображеннями
 
-                double maxSimilarity = double.MinValue;
-                string mostSimilarImage = "";
+                double maxCosineSimilarity = double.MinValue;
+                double maxChebyshevSimilarity = double.MinValue;
+                double maxManhattanSimilarity = double.MinValue;
+                double maxEuclideanSimilarity = double.MinValue;
+
+                string mostSimilarImageCosine = "";
+                string mostSimilarImageChebyshev = "";
+                string mostSimilarImageManhattan = "";
+                string mostSimilarImageEuclidean = "";
 
                 if (Directory.Exists(folderPath))
                 {
@@ -39,30 +47,61 @@ namespace SimpleWinFormsApp
                         using (Bitmap bmp = new Bitmap(file))
                         {
                             var featureVector = GetFeatureVector(bmp);
-                            var normalizedFeatureVector = NormalizeFeatureVector(featureVector);
-
-                            double similarity = ComputeSimilarity(inputNormalizedFeatureVector, normalizedFeatureVector);
+                            var normalizedFeatureVector = ZScoreNormalizeFeatureVector(featureVector);
+                            //var normalizedFeatureVector = NormalizeFeatureVector(featureVector);
                             string fileName = Path.GetFileName(file);
-                            if (similarity > maxSimilarity)
+                            txtBlackPixelCount.AppendText($"Image: {fileName}{Environment.NewLine}");
+
+                            // Косинусна подібність
+                            double cosineSimilarity = ComputeSimilarity(inputNormalizedFeatureVector, normalizedFeatureVector);
+                            txtBlackPixelCount.AppendText($"Cosine similarity: {cosineSimilarity:F2} {Environment.NewLine}");
+                            if (cosineSimilarity > maxCosineSimilarity)
                             {
-                                maxSimilarity = similarity;
-                                mostSimilarImage = file;
+                                maxCosineSimilarity = cosineSimilarity;
+                                mostSimilarImageCosine = file;
                             }
-                            txtBlackPixelCount.AppendText($"Image: {fileName} - Similarity: {similarity:F2} {Environment.NewLine}");
+
+                            // Норма Чебишева
+                            double chebyshevSimilarity = ComputeChebyshevSimilarity(inputNormalizedFeatureVector, normalizedFeatureVector);
+                            txtBlackPixelCount.AppendText($"Chebyshev norm (L∞-norm): {chebyshevSimilarity:F2} {Environment.NewLine}");
+                            if (chebyshevSimilarity > maxChebyshevSimilarity)
+                            {
+                                maxChebyshevSimilarity = chebyshevSimilarity;
+                                mostSimilarImageChebyshev = file;
+                            }
+
+                            // Манхетенська норма
+                            double manhattanSimilarity = ComputeManhattanSimilarity(inputNormalizedFeatureVector, normalizedFeatureVector);
+                            txtBlackPixelCount.AppendText($"Manhattan norm (L1-norm): {manhattanSimilarity:F2} {Environment.NewLine}");
+                            if (manhattanSimilarity > maxManhattanSimilarity)
+                            {
+                                maxManhattanSimilarity = manhattanSimilarity;
+                                mostSimilarImageManhattan = file;
+                            }
+
+                            // Евклідова норма
+                            double euclideanSimilarity = ComputeEuclideanSimilarity(inputNormalizedFeatureVector, normalizedFeatureVector);
+                            txtBlackPixelCount.AppendText($"Euclidean norm (L2-norm): {euclideanSimilarity:F2} {Environment.NewLine}");
+                            if (euclideanSimilarity > maxEuclideanSimilarity)
+                            {
+                                maxEuclideanSimilarity = euclideanSimilarity;
+                                mostSimilarImageEuclidean = file;
+                            }
                         }
                     }
-                    if (mostSimilarImage != null)
+                    if (mostSimilarImageChebyshev != null)
                     {
-                        string fileName = Path.GetFileName(mostSimilarImage);
+                        string fileNameSimilarImageChebyshev = Path.GetFileName(mostSimilarImageChebyshev);
+                        string fileNamemostSimilarImageCosine = Path.GetFileName(mostSimilarImageCosine);
+                        string filemostSimilarImageManhattan = Path.GetFileName(mostSimilarImageManhattan);
+                        string fileNamemostSimilarImageEuclidean = Path.GetFileName(mostSimilarImageEuclidean);
 
-                        // Знаходимо позицію першої крапки
-                        int dotIndex = fileName.IndexOf('.');
+                        txtBlackPixelCount.AppendText($"{Environment.NewLine}Most Similar Images by Metric:{Environment.NewLine}");
+                        txtBlackPixelCount.AppendText($"Cosine Similarity: {Path.GetFileName(fileNamemostSimilarImageCosine.IndexOf('.') >= 0 ? fileNamemostSimilarImageCosine.Substring(0, fileNamemostSimilarImageCosine.IndexOf('.')) : fileNamemostSimilarImageCosine)} - Similarity: {maxCosineSimilarity:F2}{Environment.NewLine}");
+                        txtBlackPixelCount.AppendText($"Chebyshev Similarity: {Path.GetFileName(fileNameSimilarImageChebyshev.IndexOf('.') >= 0 ? fileNameSimilarImageChebyshev.Substring(0, fileNameSimilarImageChebyshev.IndexOf('.')) : fileNameSimilarImageChebyshev)} - Similarity: {maxChebyshevSimilarity:F2}{Environment.NewLine}");
+                        txtBlackPixelCount.AppendText($"Manhattan Similarity: {Path.GetFileName(filemostSimilarImageManhattan.IndexOf('.') >= 0 ? filemostSimilarImageManhattan.Substring(0, filemostSimilarImageManhattan.IndexOf('.')) : filemostSimilarImageManhattan)} - Similarity: {maxManhattanSimilarity:F2}{Environment.NewLine}");
+                        txtBlackPixelCount.AppendText($"Euclidean Similarity: {Path.GetFileName(fileNamemostSimilarImageEuclidean.IndexOf('.') >= 0 ? fileNamemostSimilarImageEuclidean.Substring(0, fileNamemostSimilarImageEuclidean.IndexOf('.')) : fileNamemostSimilarImageEuclidean)} - Similarity: {maxEuclideanSimilarity:F2}{Environment.NewLine}");
 
-                        // Якщо крапка знайдена, беремо частину до неї
-                        string fileNameBeforeDot = dotIndex >= 0 ? fileName.Substring(0, dotIndex) : fileName;
-
-                        // Виведення імені файлу та схожості
-                        txtBlackPixelCount.AppendText($"Most similar image: {fileNameBeforeDot} - Similarity: {maxSimilarity:F2}");
                     }
                     else
                     {
@@ -117,6 +156,15 @@ namespace SimpleWinFormsApp
             return featureVector.Select(v => maxValue > 0 ? (float)v / maxValue : 0).ToList();
         }
 
+        public List<float> ZScoreNormalizeFeatureVector(List<int> featureVector)
+        {
+            double mean = featureVector.Average();
+            double stdDev = Math.Sqrt(featureVector.Sum(v => Math.Pow(v - mean, 2)) / featureVector.Count);
+
+            return featureVector.Select(v => stdDev > 0 ? (float)((v - mean) / stdDev) : 0).ToList();
+        }
+
+
         public double ComputeSimilarity(List<float> vector1, List<float> vector2)
         {
             if (vector1.Count != vector2.Count)
@@ -134,6 +182,71 @@ namespace SimpleWinFormsApp
             }
 
             return dotProduct / (magnitude1 * magnitude2); // Cosine similarity
+        }
+        //---- Норма Чебишева ----
+        public double ComputeChebyshevSimilarity(List<float> vector1, List<float> vector2)
+        {
+            if (vector1.Count != vector2.Count)
+            {
+                throw new ArgumentException("Feature vectors must have the same length.");
+            }
+
+            double maxDifference = 0;
+
+            for (int i = 0; i < vector1.Count; i++)
+            {
+                double difference = Math.Abs(vector1[i] - vector2[i]);
+                if (difference > maxDifference)
+                {
+                    maxDifference = difference;
+                }
+            }
+
+            // Норма Чебишева повертає найбільшу відстань, але для схожості краще використовувати зворотне значення
+            return 1 / (1 + maxDifference); // Додаємо 1, щоб уникнути ділення на нуль
+        }
+        //---- Манхетенська норма (L1-норма) ----
+        public double ComputeManhattanSimilarity(List<float> vector1, List<float> vector2)
+        {
+            if (vector1.Count != vector2.Count)
+            {
+                throw new ArgumentException("Feature vectors must have the same length.");
+            }
+
+            double sumOfDifferences = 0;
+
+            for (int i = 0; i < vector1.Count; i++)
+            {
+                sumOfDifferences += Math.Abs(vector1[i] - vector2[i]);
+            }
+
+            // Нормалізація результату
+            double maxPossibleDifference = vector1.Count; // Максимальна можлива різниця при нормалізованих значеннях
+            double normalizedDifference = sumOfDifferences / maxPossibleDifference;
+
+            return 1 / (1 + normalizedDifference); // Додаємо 1, щоб уникнути ділення на нуль
+        }
+
+
+        //---- Евклідова норма (L2-норма) ----
+        public double ComputeEuclideanSimilarity(List<float> vector1, List<float> vector2)
+        {
+            if (vector1.Count != vector2.Count)
+            {
+                throw new ArgumentException("Feature vectors must have the same length.");
+            }
+
+            double sumOfSquaredDifferences = 0;
+
+            for (int i = 0; i < vector1.Count; i++)
+            {
+                double difference = vector1[i] - vector2[i];
+                sumOfSquaredDifferences += difference * difference;
+            }
+
+            double euclideanDistance = Math.Sqrt(sumOfSquaredDifferences);
+
+            return 1 / (1 + euclideanDistance); // Додаємо 1, щоб уникнути ділення на нуль
         }
 
 
