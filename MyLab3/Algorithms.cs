@@ -24,64 +24,80 @@ namespace SimpleWinFormsApp
             {
                 Bitmap inputImage = new Bitmap(bmpOne);
                 var inputFeatureVector = GetFeatureVector(inputImage);
-                //var inputNormalizedFeatureVector = NormalizeFeatureVector(inputFeatureVector);
-                var inputNormalizedFeatureVector = ZScoreNormalizeFeatureVector(inputFeatureVector);
+                var inputNormalizedFeatureVector = NormalizeFeatureVector(inputFeatureVector);
+                //var inputNormalizedFeatureVector = ZScoreNormalizeFeatureVector(inputFeatureVector);
 
                 txtBlackPixelCount.Text = "";
                 txtBlackPixelCount.AppendText($"   Result   {Environment.NewLine}");
                 string folderPath = @"C:\Users\G_I\OneDrive\Рабочий стол\photo";
-                var allFeatureVectors = new Dictionary<string, List<float>>();
+
+                var groupedFeatureVectors = new Dictionary<string, List<List<float>>>();
+                var averageFeatureVectors = new Dictionary<string, List<float>>();
 
                 double maxCosineSimilarity = double.MinValue;
                 double maxManhattanSimilarity = double.MinValue;
                 string mostSimilarImageCosine = "";
                 string mostSimilarImageManhattan = "";
 
-
                 if (Directory.Exists(folderPath))
                 {
                     var files = Directory.GetFiles(folderPath, "*.bmp");
                     foreach (var file in files)
                     {
+                        string fileName = Path.GetFileNameWithoutExtension(file);
+                        string prefix = fileName.Split('.')[0];
+
                         using (Bitmap bmp = new Bitmap(file))
                         {
                             var featureVector = GetFeatureVector(bmp);
-                            var normalizedFeatureVector = ZScoreNormalizeFeatureVector(featureVector);
-                            string fileName = Path.GetFileName(file);
+                            //var normalizedFeatureVector = ZScoreNormalizeFeatureVector(featureVector);
+                            var normalizedFeatureVector = NormalizeFeatureVector(featureVector);
+                            //string fileName = Path.GetFileName(file);
 
-                            // Додаємо нормалізований вектор ознак до словника
-                            allFeatureVectors[fileName] = normalizedFeatureVector;
-
-
-                            txtBlackPixelCount.AppendText($"Image: {fileName}{Environment.NewLine}");
-
-                            // Косинусна подібність
-                            double cosineSimilarity = ComputeSimilarity(inputNormalizedFeatureVector, normalizedFeatureVector);
-                            txtBlackPixelCount.AppendText($"Cosine similarity: {cosineSimilarity:F2} {Environment.NewLine}");
-                            if (cosineSimilarity > maxCosineSimilarity)
+                            // Додаємо нормалізований вектор до відповідної групи
+                            if (!groupedFeatureVectors.ContainsKey(prefix))
                             {
-                                maxCosineSimilarity = cosineSimilarity;
-                                mostSimilarImageCosine = file;
+                                groupedFeatureVectors[prefix] = new List<List<float>>();
                             }
-
-                            // Манхетенська норма
-                            double manhattanSimilarity = ComputeManhattanSimilarity(inputNormalizedFeatureVector, normalizedFeatureVector);
-                            txtBlackPixelCount.AppendText($"Manhattan norm (L1-norm): {manhattanSimilarity:F2} {Environment.NewLine}");
-                            if (manhattanSimilarity > maxManhattanSimilarity)
-                            {
-                                maxManhattanSimilarity = manhattanSimilarity;
-                                mostSimilarImageManhattan = file;
-                            }
-
-
+                            groupedFeatureVectors[prefix].Add(normalizedFeatureVector);
                         }
                     }
-                    // Серіалізуємо всі вектори ознак в один JSON
-                    string json = JsonSerializer.Serialize(allFeatureVectors, new JsonSerializerOptions { WriteIndented = true });
+                    // Серіалізація кожної групи у окремий JSON файл
+                    foreach (var group in groupedFeatureVectors)
+                    {
+                        string jsonFilePath = Path.Combine(folderPath, $"{group.Key}.json");
+                        string json = JsonSerializer.Serialize(group.Value, new JsonSerializerOptions { WriteIndented = true });
+                        File.WriteAllText(jsonFilePath, json);
 
-                    // Зберігаємо JSON у файл
-                    string jsonFilePath = Path.Combine(folderPath, "all_features.json");
-                    File.WriteAllText(jsonFilePath, json);
+                        // Обчислення середнього вектора
+                        var averageVector = CalculateAverageVector(group.Value);
+                        averageFeatureVectors[group.Key] = averageVector;
+
+                        txtBlackPixelCount.AppendText($"Image: {group.Key}{Environment.NewLine}");
+
+                        // Косинусна подібність
+                        double cosineSimilarity = ComputeSimilarity(inputNormalizedFeatureVector, averageVector);
+                        txtBlackPixelCount.AppendText($"Cosine similarity: {cosineSimilarity:F2} {Environment.NewLine}");
+                        if (cosineSimilarity > maxCosineSimilarity)
+                        {
+                            maxCosineSimilarity = cosineSimilarity;
+                            mostSimilarImageCosine = group.Key;
+                        }
+
+                        // Манхетенська норма
+                        double manhattanSimilarity = ComputeManhattanSimilarity(inputNormalizedFeatureVector, averageVector);
+                        txtBlackPixelCount.AppendText($"Manhattan norm (L1-norm): {manhattanSimilarity:F2} {Environment.NewLine}");
+                        if (manhattanSimilarity > maxManhattanSimilarity)
+                        {
+                            maxManhattanSimilarity = manhattanSimilarity;
+                            mostSimilarImageManhattan = group.Key;
+                        }
+                    }
+
+                    // Серіалізація середніх векторів у окремий JSON файл
+                    string averageJsonFilePath = Path.Combine(folderPath, "average_vectors.json");
+                    string averageJson = JsonSerializer.Serialize(averageFeatureVectors, new JsonSerializerOptions { WriteIndented = true });
+                    File.WriteAllText(averageJsonFilePath, averageJson);
 
                     if (mostSimilarImageManhattan != null)
                     {
@@ -196,6 +212,28 @@ namespace SimpleWinFormsApp
             double normalizedDifference = sumOfDifferences / maxPossibleDifference;
 
             return 1 / (1 + normalizedDifference); // Додаємо 1, щоб уникнути ділення на нуль
+        }
+
+
+        public List<float> CalculateAverageVector(List<List<float>> vectors)
+        {
+            int vectorLength = vectors[0].Count;
+            List<float> averageVector = new List<float>(new float[vectorLength]);
+
+            foreach (var vector in vectors)
+            {
+                for (int i = 0; i < vectorLength; i++)
+                {
+                    averageVector[i] += vector[i];
+                }
+            }
+
+            for (int i = 0; i < vectorLength; i++)
+            {
+                averageVector[i] /= vectors.Count;
+            }
+
+            return averageVector;
         }
 
     }
