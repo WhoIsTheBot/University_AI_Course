@@ -1,0 +1,89 @@
+/*
+
+    public void CountBlackPixels(Bitmap bmp)
+    {
+        ArrayList howIsVector = new ArrayList();
+        int numberSecors = 25;
+        int sideLength = bmp.Height / numberSecors;
+
+        txtBlackPixelCount.Text = "";
+        txtBlackPixelCount.AppendText($" Vector{Environment.NewLine}");
+
+        for (int y = 0; y < numberSecors; y++)
+        {
+            for (int x = 0; x < numberSecors; x++)
+            {
+                int blackPixelCount = 0;
+                for (int i = y * sideLength; i < (y + 1) * sideLength; i++)
+                {
+                    for (int j = x * sideLength; j < (x + 1) * sideLength; j++)
+                    {
+                        Color pixelColor = bmp.GetPixel(j, i);
+
+                        // Перевірка, чи піксель чорного кольору
+                        if (pixelColor.R == 0 && pixelColor.G == 0 && pixelColor.B == 0)
+                        {
+                            blackPixelCount++;
+                        }
+                    }
+                }
+
+                howIsVector.Add(blackPixelCount);
+                txtBlackPixelCount.AppendText($"{blackPixelCount} ");
+            }
+        }
+
+        Sum(howIsVector);
+    }
+
+    private void Sum(ArrayList howIsVector)
+    {
+        int sumNumberVector = 0;
+        int maxValue = int.MinValue;
+        foreach (object obj in howIsVector)
+        {
+            if (obj is int count)
+            {
+                sumNumberVector += count;
+                if (count > maxValue)
+                {
+                    maxValue = count;
+                }
+            }
+        }
+        txtBlackPixelCount.AppendText($"{Environment.NewLine}");
+        txtBlackPixelCount.AppendText($"  Max - {maxValue}{Environment.NewLine}");
+        foreach (object obj in howIsVector)
+        {
+            if (obj is int count)
+            {
+                float result = (float)count / maxValue;
+                txtBlackPixelCount.AppendText($"{result:F2} ");
+            }
+            else
+            {
+                MessageBox.Show("Помилка: Неправильний тип даних у ArrayList");
+                return;
+            }
+        }
+        txtBlackPixelCount.AppendText($"{Environment.NewLine}");
+        txtBlackPixelCount.AppendText($"  Sum - {sumNumberVector}{Environment.NewLine}");
+        float resultSum = 0;
+        foreach (object obj in howIsVector)
+        {
+            if (obj is int count)
+            {
+                float result = (float)count / sumNumberVector;
+                resultSum += result;
+                txtBlackPixelCount.AppendText($"{result:F2} "); 
+            }
+            else
+            {
+                MessageBox.Show("Помилка: Неправильний тип даних у ArrayList");
+                return;
+            }
+        }
+
+        txtBlackPixelCount.AppendText($"{Environment.NewLine}{resultSum:F2} ");
+    }
+    */
